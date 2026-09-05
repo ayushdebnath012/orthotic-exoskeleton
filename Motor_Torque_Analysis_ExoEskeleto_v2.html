@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Euler-Lagrange Joint and Motor Torque Analysis - ExoEskeleto</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm 17mm 15mm; }
+  :root {
+    --ink: #17324d;
+    --muted: #526878;
+    --line: #d7e0e7;
+    --soft: #f3f7fa;
+    --blue: #1465a8;
+    --teal: #00746b;
+    --amber: #f6a800;
+    --orange: #d85b09;
+    --red: #a83333;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: var(--ink);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.38;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body { background: #fff; }
+  .page {
+    break-after: page;
+    page-break-after: always;
+    min-height: 254mm;
+    position: relative;
+  }
+  .page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  h1, h2, h3 { margin: 0; color: var(--ink); }
+  h1 { font-size: 27pt; line-height: 1.05; letter-spacing: -0.4px; }
+  h2 {
+    font-size: 17pt;
+    margin-bottom: 7mm;
+    padding-bottom: 3mm;
+    border-bottom: 1.2px solid var(--line);
+  }
+  h3 { font-size: 11.5pt; margin: 4mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 1.5mm 0 3mm 5mm; padding-left: 4mm; }
+  li { margin-bottom: 1mm; }
+  code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8.8pt;
+    color: #183e5d;
+  }
+  .formula {
+    margin: 3mm 0;
+    padding: 3mm 4mm;
+    background: #edf5fb;
+    border-left: 3px solid var(--blue);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 10.2pt;
+  }
+  .eyebrow {
+    color: var(--blue);
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-size: 8.5pt;
+    margin-bottom: 5mm;
+  }
+  .subtitle {
+    margin-top: 4mm;
+    max-width: 152mm;
+    color: var(--muted);
+    font-size: 14pt;
+    line-height: 1.28;
+  }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3mm;
+    margin-top: 12mm;
+  }
+  .meta div {
+    border-top: 2px solid var(--blue);
+    padding-top: 2mm;
+  }
+  .meta small {
+    display: block;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 7.4pt;
+    letter-spacing: .5px;
+  }
+  .meta strong { display: block; margin-top: 1mm; font-size: 10pt; }
+  .hero-result {
+    margin-top: 15mm;
+    padding: 7mm;
+    color: #fff;
+    background: linear-gradient(120deg, #123a5d, #0b6d72);
+    border-radius: 3mm;
+  }
+  .hero-result .label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: .8;
+  }
+  .hero-result .big {
+    font-size: 22pt;
+    font-weight: 750;
+    margin: 2mm 0 1mm;
+  }
+  .hero-result .sub { opacity: .93; font-size: 10pt; }
+  .cover-note {
+    position: absolute;
+    bottom: 4mm;
+    color: var(--muted);
+    font-size: 8.5pt;
+    max-width: 160mm;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4mm;
+  }
+  .card {
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 2.5mm;
+    padding: 4mm;
+  }
+  .card h3 { margin-top: 0; }
+  .card.accent { border-top: 3px solid var(--blue); }
+  .card.knee { border-top: 3px solid var(--amber); background: #fff8e5; }
+  .card.ankle { border-top: 3px solid var(--teal); }
+  .metric {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+    margin: 2mm 0;
+  }
+  .metric b { font-size: 20pt; color: var(--blue); }
+  .metric span { color: var(--muted); }
+  .tag {
+    display: inline-block;
+    padding: .8mm 2mm;
+    border-radius: 8mm;
+    background: #e5eef5;
+    color: #234c6d;
+    font-size: 7.6pt;
+    font-weight: 650;
+    margin: 0 1mm 1mm 0;
+  }
+  .tag.knee { background: #ffe5a3; color: #674300; }
+  .callout {
+    margin: 4mm 0;
+    padding: 3.2mm 4mm;
+    border-left: 3px solid var(--amber);
+    background: #fff8e4;
+  }
+  .warning {
+    margin: 4mm 0;
+    padding: 3.2mm 4mm;
+    border-left: 3px solid var(--red);
+    background: #fff1f1;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2mm 0 4mm;
+    font-size: 8.7pt;
+  }
+  th {
+    background: #e8f0f5;
+    color: #204461;
+    font-weight: 700;
+    text-align: left;
+  }
+  th, td {
+    border: 1px solid #cfdbe3;
+    padding: 1.8mm 2mm;
+    vertical-align: top;
+  }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr.knee-row td { background: #fff5d8; font-weight: 700; }
+  .source-table td:first-child { width: 34%; font-weight: 650; }
+  .figure {
+    margin: 3mm 0 4mm;
+    border: 1px solid var(--line);
+    border-radius: 2mm;
+    padding: 2.5mm;
+    background: #fff;
+  }
+  .figure img { display: block; max-width: 100%; max-height: 115mm; margin: 0 auto; }
+  .caption { color: var(--muted); font-size: 7.8pt; margin-top: 1.5mm; }
+  .compact { font-size: 8.2pt; }
+  .small { color: var(--muted); font-size: 8.2pt; }
+  .result-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3mm;
+    margin: 3mm 0 5mm;
+  }
+  .result-strip div {
+    border-radius: 2mm;
+    padding: 3mm;
+    background: #edf3f7;
+  }
+  .result-strip .focus { background: #ffedb9; }
+  .result-strip small { display: block; color: var(--muted); }
+  .result-strip strong { display: block; font-size: 16pt; margin-top: 1mm; }
+  .toc-line {
+    display: grid;
+    grid-template-columns: 12mm 1fr;
+    margin: 2mm 0;
+    border-bottom: 1px dotted #b9c7d1;
+    padding-bottom: 1.5mm;
+  }
+  .toc-line span:first-child { color: var(--blue); font-weight: 750; }
+  .closing {
+    margin-top: 7mm;
+    padding: 6mm;
+    border-radius: 3mm;
+    background: #0f3a57;
+    color: white;
+    font-size: 13pt;
+    text-align: center;
+  }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="eyebrow">Mechanical design analysis</div>
+  <h1>Euler-Lagrange joint and motor torque analysis</h1>
+  <div class="subtitle">ExoEskeleto lower-limb exoskeleton - knee-dominant actuator sizing grounded in the updated manufacturing drawing and supplied CAD gait.</div>
+
+  <div class="meta">
+    <div><small>Reference user</small><strong>80 kg</strong></div>
+    <div><small>Frame</small><strong>6.49 kg Al 6061-T6</strong></div>
+    <div><small>Gait input</small><strong>2.4 s / 60 frames</strong></div>
+    <div><small>Analysis date</small><strong>28 July 2026</strong></div>
+  </div>
+
+  <div class="hero-result">
+    <div class="label">Selected output ratings - each side</div>
+    <div class="big">Knee 120 N m peak &nbsp; | &nbsp; Ankle 60 N m peak</div>
+    <div class="sub">Hip motor torque is 0 N m because the current manufacturing drawing defines the hip as a passive pivot.</div>
+  </div>
+
+  <div class="grid-3" style="margin-top:8mm">
+    <div class="card accent">
+      <h3>Passive hip</h3>
+      <div class="metric"><b>0</b><span>N m motor</span></div>
+      <p class="small">Reaction load remains and must be carried structurally.</p>
+    </div>
+    <div class="card knee">
+      <h3>Knee - highest</h3>
+      <div class="metric"><b style="color:#9a6200">120</b><span>N m peak</span></div>
+      <p class="small">60 N m provisional continuous output.</p>
+    </div>
+    <div class="card ankle">
+      <h3>Ankle</h3>
+      <div class="metric"><b style="color:#00746b">60</b><span>N m peak</span></div>
+      <p class="small">30 N m provisional continuous output.</p>
+    </div>
+  </div>
+
+  <div class="cover-note">Engineering sizing study only. Complete native CAD mass properties, measured ground-reaction forces, structural FEA, gearbox life analysis, thermal validation, and instrumented bench testing before human use.</div>
+</section>
+
+<section class="page">
+  <h2>1. Evidence audit and model basis</h2>
+
+  <div class="callout"><b>Precedence decision.</b> The 26-07-2026 manufacturing drawing is the controlling hardware source. It supersedes the earlier steel/electromagnet drawing and states: 6.49 kg total frame, 400 mm thigh, 420 mm shank, knee and ankle actuation, passive hips.</div>
+
+  <table class="source-table">
+    <tr><th>Workspace source</th><th>How it was used</th></tr>
+    <tr><td>ExoEskeleto_Manufacturing_Drawing (1).pdf</td><td>Authoritative material, total frame mass, link lengths, and actuator architecture.</td></tr>
+    <tr><td>ExoEskeleto Drawing v1.pdf</td><td>Earlier geometry cross-check only. Its steel/electromagnet BOM conflicts with the updated drawing.</td></tr>
+    <tr><td>ExoEskeleto_final.step</td><td>Assembly geometry and density entities; no exported per-part mass, COM, or inertia table.</td></tr>
+    <tr><td>ExoEskeleto_final.SLDASM</td><td>Zero-byte file; no usable assembly data.</td></tr>
+    <tr><td>Exoskeleton.stp.SLDPRT</td><td>SolidWorks container without a supplied neutral mass-properties report.</td></tr>
+    <tr><td>blended.json + gait GIF/frame set</td><td>60-frame bilateral kinematics and measured 2.4 s animation cycle.</td></tr>
+    <tr><td>JPG renders and videos</td><td>Visual confirmation of the bilateral sagittal linkage; no quantitative motor or load data.</td></tr>
+    <tr><td>AEGIS and ExoVLA-WM PDFs</td><td>Controller/safety context only; no mechanism-specific torque, motor, gearbox, or GRF input.</td></tr>
+  </table>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Known directly</h3>
+      <span class="tag">Frame 6.49 kg</span>
+      <span class="tag">Thigh 0.400 m</span>
+      <span class="tag">Shank 0.420 m</span>
+      <span class="tag">Al 6061-T6</span>
+      <span class="tag knee">Knee powered</span>
+      <span class="tag">Ankle powered</span>
+      <span class="tag">Hip passive</span>
+    </div>
+    <div class="card">
+      <h3>Still assumed or missing</h3>
+      <span class="tag">80 kg user</span>
+      <span class="tag">Segment anthropometry</span>
+      <span class="tag">Per-link frame mass split</span>
+      <span class="tag">Joint zeros</span>
+      <span class="tag">Ground force history</span>
+      <span class="tag">Motor / reducer mass</span>
+      <span class="tag">Friction / rotor inertia</span>
+    </div>
+  </div>
+
+  <h3>Mass allocation used</h3>
+  <table>
+    <tr><th>Frame group</th><th class="num">Per leg</th><th>Model</th></tr>
+    <tr><td>Thigh link and local plates</td><td class="num">0.75 kg</td><td>Uniform link, COM at 50%</td></tr>
+    <tr><td>Shank link and local plates</td><td class="num">0.90 kg</td><td>Uniform link, COM at 50%</td></tr>
+    <tr><td>Foot link and local plates</td><td class="num">0.60 kg</td><td>Uniform link, COM at 50%</td></tr>
+    <tr><td>Moving bilateral subtotal</td><td class="num">4.50 kg</td><td>Included in kinetic/potential energy</td></tr>
+    <tr><td>Fixed pelvis/waist remainder</td><td class="num">1.99 kg</td><td>Included in support force, not moving-link energy</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h2>2. Euler-Lagrange formulation</h2>
+
+  <div class="grid-2">
+    <div>
+      <h3>Coordinates</h3>
+      <p><code>q1</code>: thigh absolute angle from the global horizontal.</p>
+      <p><code>q2</code>: knee angle relative to the thigh.</p>
+      <p><code>q3</code>: ankle/foot angle relative to the shank.</p>
+      <div class="formula">phi1 = q1<br>phi2 = q1 + q2<br>phi3 = q1 + q2 + q3</div>
+      <h3>Energy</h3>
+      <div class="formula">T = sum[0.5 m v^T v + 0.5 I omega^2]<br>V = sum[m g y]<br>L = T - V</div>
+      <h3>Inverse dynamics</h3>
+      <div class="formula">d/dt(partial L / partial qdot_i) - partial L / partial q_i = tau_i + [J_COP^T F]_i</div>
+      <div class="formula">tau_req = M(q) qdd + C(q,qdot) qdot + G(q) - J_COP(q)^T F</div>
+    </div>
+    <div class="card" style="padding:2mm 3mm">
+      <svg viewBox="0 0 400 465" width="100%" height="122mm" role="img" aria-label="Three link sagittal leg and ground reaction force">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#d85b09"/>
+          </marker>
+        </defs>
+        <rect x="0" y="0" width="400" height="465" rx="14" fill="#f8fbfd"/>
+        <line x1="80" y1="420" x2="340" y2="420" stroke="#536b7b" stroke-width="3"/>
+        <line x1="180" y1="65" x2="252" y2="205" stroke="#1465a8" stroke-width="18" stroke-linecap="round"/>
+        <line x1="252" y1="205" x2="190" y2="370" stroke="#546e7a" stroke-width="18" stroke-linecap="round"/>
+        <line x1="190" y1="370" x2="300" y2="405" stroke="#00746b" stroke-width="16" stroke-linecap="round"/>
+        <circle cx="180" cy="65" r="13" fill="#fff" stroke="#17324d" stroke-width="4"/>
+        <circle cx="252" cy="205" r="17" fill="#f6a800" stroke="#7d5400" stroke-width="4"/>
+        <circle cx="190" cy="370" r="13" fill="#fff" stroke="#17324d" stroke-width="4"/>
+        <text x="108" y="55" font-size="17" fill="#17324d" font-weight="700">Passive hip</text>
+        <text x="270" y="200" font-size="18" fill="#7d5400" font-weight="750">Knee motor</text>
+        <text x="98" y="365" font-size="17" fill="#17324d" font-weight="700">Ankle motor</text>
+        <line x1="250" y1="408" x2="250" y2="280" stroke="#d85b09" stroke-width="5" marker-end="url(#arrow)"/>
+        <text x="265" y="320" font-size="17" fill="#d85b09" font-weight="700">F_y</text>
+        <line x1="190" y1="438" x2="250" y2="438" stroke="#d85b09" stroke-width="3"/>
+        <line x1="190" y1="430" x2="190" y2="446" stroke="#d85b09" stroke-width="3"/>
+        <line x1="250" y1="430" x2="250" y2="446" stroke="#d85b09" stroke-width="3"/>
+        <text x="202" y="460" font-size="15" fill="#d85b09">COP = 60 mm</text>
+        <text x="20" y="455" font-size="14" fill="#526878">Sagittal-plane sizing model</text>
+      </svg>
+    </div>
+  </div>
+
+  <h3>Numerical verification</h3>
+  <table>
+    <tr><th>Model check</th><th class="num">Result</th><th>Meaning</th></tr>
+    <tr><td>Mass-matrix asymmetry</td><td class="num">0.000e+00</td><td><code>M = M^T</code></td></tr>
+    <tr><td>Minimum tested eigenvalue</td><td class="num">2.132e-02 kg m^2</td><td>Positive definite inertia</td></tr>
+    <tr><td>Coriolis at zero velocity</td><td class="num">0.000e+00 N m</td><td>No spurious velocity load</td></tr>
+    <tr><td>Power-identity error</td><td class="num">3.553e-15 W</td><td>Euler-Lagrange energy consistency</td></tr>
+  </table>
+
+  <div class="callout"><b>Actuator vector.</b> The inverse-dynamics hip entry is a reaction. The commanded output is <code>tau_motor = [0, tau_knee, tau_ankle]^T</code>.</div>
+</section>
+
+<section class="page">
+  <h2>3. Supplied CAD gait - swing inverse dynamics</h2>
+
+  <p>The 60-frame <code>blended.json</code> sequence was evaluated over the 2.4 s GIF cycle. Because the export contains no joint-zero or sign metadata, frame 1 is calibrated as vertical thigh, extended knee, horizontal foot. Ground reaction is zero, so these results represent swing/inertial demand only.</p>
+
+  <div class="figure">
+    <img src="output/torque_analysis/gait_joint_torque.png" alt="Knee and ankle torque histories">
+    <div class="caption">Figure 1. Powered-joint output torque from the supplied bilateral CAD gait. Knee torque exceeds ankle torque on both sides.</div>
+  </div>
+
+  <table class="compact">
+    <tr><th>Side</th><th>Joint</th><th class="num">Peak torque</th><th class="num">RMS torque</th><th class="num">Peak speed</th><th class="num">Peak power</th></tr>
+    <tr><td>Left</td><td>Passive hip reaction</td><td class="num">34.67 N m</td><td class="num">15.21 N m</td><td class="num">1.679 rad/s</td><td class="num">39.39 W</td></tr>
+    <tr class="knee-row"><td>Left</td><td>Knee motor</td><td class="num">10.18 N m</td><td class="num">6.24 N m</td><td class="num">2.007 rad/s</td><td class="num">17.84 W</td></tr>
+    <tr><td>Left</td><td>Ankle motor</td><td class="num">3.67 N m</td><td class="num">2.36 N m</td><td class="num">1.157 rad/s</td><td class="num">3.54 W</td></tr>
+    <tr><td>Right</td><td>Passive hip reaction</td><td class="num">43.05 N m</td><td class="num">20.97 N m</td><td class="num">2.186 rad/s</td><td class="num">55.26 W</td></tr>
+    <tr class="knee-row"><td>Right</td><td>Knee motor</td><td class="num">14.35 N m</td><td class="num">7.22 N m</td><td class="num">1.512 rad/s</td><td class="num">16.70 W</td></tr>
+    <tr><td>Right</td><td>Ankle motor</td><td class="num">3.20 N m</td><td class="num">2.19 N m</td><td class="num">0.965 rad/s</td><td class="num">2.41 W</td></tr>
+  </table>
+
+  <div class="warning"><b>Interpretation limit.</b> This animation is not a force-plate gait dataset. Its useful role is a first dynamic and speed check. It cannot size stance torque without synchronized foot force and COP measurements.</div>
+</section>
+
+<section class="page">
+  <h2>4. Governing knee-dominant support case</h2>
+
+  <div class="grid-2">
+    <div>
+      <h3>Load state</h3>
+      <ul>
+        <li><code>q = [-60, -60, 120] deg</code>; foot horizontal.</li>
+        <li><code>qdot = 0</code> and <code>qdd = 0</code> at the peak quasi-static state.</li>
+        <li>Combined mass = 80 + 6.49 = 86.49 kg.</li>
+        <li>Total support = 1.2 body/frame weight.</li>
+        <li>Per-leg vertical force = 509.08 N.</li>
+        <li>COP = 60 mm forward of ankle.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Mass matrix at the posture</h3>
+      <div class="formula">M = [[2.668720, 0.867689, 0.048529],<br>&nbsp;&nbsp;&nbsp;&nbsp; [0.867689, 0.500985, 0.002769],<br>&nbsp;&nbsp;&nbsp;&nbsp; [0.048529, 0.002769, 0.050817]] kg m^2</div>
+      <p class="small">The inertia and Coriolis vectors are zero in this peak quasi-static snapshot. The nonzero result comes from gravity and the mapped ground force.</p>
+    </div>
+  </div>
+
+  <div class="figure">
+    <img src="output/torque_analysis/support_motor_sizing.png" alt="Support torque sizing chart">
+    <div class="caption">Figure 2. Euler-Lagrange support torque, 1.5 factor, and rounded output selection. The hip value is a passive reaction, not a motor rating.</div>
+  </div>
+
+  <table>
+    <tr><th>Joint</th><th class="num">Gravity G</th><th class="num">J^T F</th><th class="num">tau = G - J^T F</th><th class="num">1.5 abs(tau)</th></tr>
+    <tr><td>Passive hip reaction</td><td class="num">+14.423</td><td class="num">+25.454</td><td class="num">-11.031</td><td class="num">16.546 N m</td></tr>
+    <tr class="knee-row"><td>Knee motor</td><td class="num">-5.627</td><td class="num">-76.362</td><td class="num">+70.735</td><td class="num">106.103 N m</td></tr>
+    <tr><td>Ankle motor</td><td class="num">+2.245</td><td class="num">+30.545</td><td class="num">-28.300</td><td class="num">42.450 N m</td></tr>
+  </table>
+
+  <div class="callout"><b>Why the knee is highest.</b> The ground-reaction-force line is about 150 mm behind the knee but only 60 mm ahead of the ankle. That real moment-arm difference, combined with a passive hip, produces the requested motor hierarchy without modifying the equations.</div>
+</section>
+
+<section class="page">
+  <h2>5. Motor and gearbox selection targets</h2>
+
+  <div class="result-strip">
+    <div><small>Hip motor</small><strong>0 N m</strong><span class="small">Passive pivot</span></div>
+    <div class="focus"><small>Knee output - highest</small><strong>120 N m</strong><span class="small">60 N m continuous</span></div>
+    <div><small>Ankle output</small><strong>60 N m</strong><span class="small">30 N m continuous</span></div>
+  </div>
+
+  <div class="formula">T_motor = T_output / (N eta)<br>rpm_motor = qdot_joint N 60 / (2 pi)</div>
+
+  <table>
+    <tr><th>Joint, each side</th><th class="num">Output cont.</th><th class="num">Output peak</th><th class="num">Ratio</th><th class="num">Efficiency</th><th class="num">Motor cont.</th><th class="num">Motor peak</th><th class="num">Measured peak rpm</th></tr>
+    <tr class="knee-row"><td>Knee</td><td class="num">60 N m</td><td class="num">120 N m</td><td class="num">80:1</td><td class="num">0.75</td><td class="num">1.000 N m</td><td class="num">2.000 N m</td><td class="num">1533</td></tr>
+    <tr><td>Ankle</td><td class="num">30 N m</td><td class="num">60 N m</td><td class="num">60:1</td><td class="num">0.75</td><td class="num">0.667 N m</td><td class="num">1.333 N m</td><td class="num">663</td></tr>
+  </table>
+
+  <div class="grid-2">
+    <div class="card knee">
+      <h3>Knee drive - provisional</h3>
+      <ul>
+        <li>48 V BLDC/PMSM.</li>
+        <li>Approximately 300-400 W class.</li>
+        <li>Motor peak torque at least 2.0 N m.</li>
+        <li>Reducer output rating at least 120 N m peak.</li>
+        <li>Output bearing sized for cuff offset moment.</li>
+        <li>Torque sensing or series compliance preferred.</li>
+      </ul>
+    </div>
+    <div class="card ankle">
+      <h3>Ankle drive - provisional</h3>
+      <ul>
+        <li>48 V BLDC/PMSM.</li>
+        <li>Approximately 150-250 W class.</li>
+        <li>Motor peak torque at least 1.33 N m.</li>
+        <li>Reducer output rating at least 60 N m peak.</li>
+        <li>Re-size if powered toe-off is required.</li>
+        <li>Keep distal mass low.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Passive hip is not load-free</h3>
+  <p>The maximum calculated swing reaction is 43.05 N m; applying 1.5 gives 64.58 N m before impact/fatigue allowance. The hip pivot, stops, fasteners, bearing, and pelvis structure must carry that load even though commanded motor torque is zero.</p>
+
+  <div class="warning"><b>Thermal qualification is still required.</b> The continuous targets are provisional 50% peak selections. Final motor current and winding temperature require the loaded torque-speed duty cycle and reducer efficiency map.</div>
+</section>
+
+<section class="page">
+  <h2>6. Sensitivity and the limits of "knee highest"</h2>
+
+  <h3>User mass sensitivity - same support posture</h3>
+  <table>
+    <tr><th class="num">User mass</th><th class="num">Raw knee</th><th class="num">Factored knee</th><th class="num">Raw ankle</th><th class="num">Factored ankle</th><th>Implication</th></tr>
+    <tr><td class="num">60 kg</td><td class="num">54.14</td><td class="num">81.20 N m</td><td class="num">21.61</td><td class="num">32.41 N m</td><td>120/60 targets have margin.</td></tr>
+    <tr><td class="num">70 kg</td><td class="num">62.44</td><td class="num">93.65 N m</td><td class="num">24.95</td><td class="num">37.43 N m</td><td>120/60 targets have margin.</td></tr>
+    <tr class="knee-row"><td class="num">80 kg</td><td class="num">70.74</td><td class="num">106.10 N m</td><td class="num">28.30</td><td class="num">42.45 N m</td><td>Nominal design case.</td></tr>
+    <tr><td class="num">90 kg</td><td class="num">79.04</td><td class="num">118.55 N m</td><td class="num">31.65</td><td class="num">47.47 N m</td><td>Near 120 N m knee limit.</td></tr>
+    <tr><td class="num">100 kg</td><td class="num">87.34</td><td class="num">131.00 N m</td><td class="num">34.99</td><td class="num">52.49 N m</td><td>Use at least 140 N m knee.</td></tr>
+  </table>
+
+  <h3>Centre-of-pressure sensitivity - 80 kg user</h3>
+  <table>
+    <tr><th class="num">COP forward</th><th class="num">Hip reaction</th><th class="num">Knee torque</th><th class="num">Ankle torque</th><th>Dominant powered joint</th></tr>
+    <tr><td class="num">20 mm</td><td class="num">9.33</td><td class="num">91.10</td><td class="num">7.94</td><td><b>Knee</b></td></tr>
+    <tr><td class="num">40 mm</td><td class="num">0.85</td><td class="num">80.92</td><td class="num">18.12</td><td><b>Knee</b></td></tr>
+    <tr class="knee-row"><td class="num">60 mm</td><td class="num">11.03</td><td class="num">70.74</td><td class="num">28.30</td><td><b>Knee</b></td></tr>
+    <tr><td class="num">80 mm</td><td class="num">21.21</td><td class="num">60.55</td><td class="num">38.48</td><td><b>Knee</b></td></tr>
+    <tr><td class="num">100 mm</td><td class="num">31.39</td><td class="num">50.37</td><td class="num">48.66</td><td>Knee, nearly equal</td></tr>
+    <tr><td class="num">120 mm</td><td class="num">41.58</td><td class="num">40.19</td><td class="num">58.85</td><td><b>Ankle</b></td></tr>
+  </table>
+
+  <div class="warning"><b>Physics boundary.</b> Knee is highest for support/sit-to-stand with COP near the ankle. During far-forward toe-off, ankle torque can exceed knee torque. If full powered push-off is in scope, the ankle must be re-sized from measured force-plate and COP histories; the load cannot be removed merely to preserve a preferred ranking.</div>
+</section>
+
+<section class="page">
+  <h2>7. Release conditions and conclusion</h2>
+
+  <h3>Data required for final sizing</h3>
+  <ol>
+    <li>Maximum user mass, payload, intended task, and assistance percentage.</li>
+    <li>Native CAD mass, COM, and inertia for every moving part, motor, gearbox, and attachment.</li>
+    <li>Exact motor and reducer efficiency, backlash, reflected inertia, thermal curve, output-bearing moment, and fatigue life.</li>
+    <li>Calibrated zero angle and axis sign for every CAD <code>Revolute</code> channel.</li>
+    <li>Loaded joint angle, velocity, and acceleration versus time.</li>
+    <li>Synchronized ground-reaction force and centre-of-pressure trajectories.</li>
+    <li>Friction, cuff forces, mechanical-stop loads, emergency braking, and power-loss support strategy.</li>
+    <li>Instrumented dummy-load bench validation before any human test.</li>
+  </ol>
+
+  <h3>Deliverables and traceability</h3>
+  <table>
+    <tr><th>Artifact</th><th>Purpose</th></tr>
+    <tr><td><code>Lagrange_Euler_Torque_Power.py</code></td><td>Reproducible Euler-Lagrange model, numerical checks, load cases, plots, CSV, and JSON generation.</td></tr>
+    <tr><td><code>output/torque_analysis/euler_lagrange_gait_results.csv</code></td><td>Per-frame bilateral q, qdot, qdd, torque, and power.</td></tr>
+    <tr><td><code>output/torque_analysis/euler_lagrange_summary.json</code></td><td>Inputs, validation results, peaks, support decomposition, ratings, and limitations.</td></tr>
+    <tr><td><code>Motor_Torque_Analysis_ExoEskeleto_v2.md</code></td><td>Human-readable calculation record.</td></tr>
+  </table>
+
+  <div class="closing">
+    For the 80 kg reference case:<br>
+    <b>Knee: 120 N m peak / 60 N m continuous</b><br>
+    Ankle: 60 N m peak / 30 N m continuous<br>
+    Hip motor: 0 N m - passive pivot
+  </div>
+
+  <p style="text-align:center;margin-top:5mm;font-size:13pt;font-weight:750;color:#0b6d72">knee motor torque &gt; ankle motor torque &gt; hip motor torque</p>
+
+  <div class="warning" style="margin-top:9mm"><b>Safety status.</b> This is an actuator-sizing study, not a medical-device approval or human-use certification. Bench-test the complete transmission and fail-safe support system with instrumented surrogate loads before any wearer trial.</div>
+</section>
+
+</body>
+</html>
